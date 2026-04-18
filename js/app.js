@@ -363,29 +363,60 @@ function bindEvents() {
   });
 }
 
+function getCurrentRecommendation(node) {
+  if (!node) return null;
+
+  if (node.type === "leaf") {
+    return {
+      kind: "leaf",
+      word: node.word || node.key || "",
+      key: node.key || "",
+      remaining: Number(node.remaining ?? 1),
+      depth: Number(node.depth ?? 0)
+    };
+  }
+
+  return {
+    kind: "node",
+    word: node.guessWord || node.guessKey || "",
+    key: node.guessKey || "",
+    remaining: Number(node.remaining ?? 0),
+    depth: Number(node.depth ?? 0)
+  };
+}
+
 function applyStrategyTransition(guessKey, guessWord, patternBYG, patternSquares) {
   let followed = false;
 
   if (state.strategyAlive && state.strategyNode) {
     const currentRec = getCurrentRecommendation(state.strategyNode);
 
-    if (currentRec && guessKey === currentRec.key && currentRec.kind === "node") {
-      const branches = Array.isArray(state.strategyNode.branches)
-        ? state.strategyNode.branches
-        : [];
-
-      const branch = branches.find(b => b.patternBYG === patternBYG);
-
-      if (branch) {
-        followed = true;
-
-        if (branch.outcome === "continue" && branch.child) {
-          state.strategyNode = branch.child;
-        } else {
+    if (currentRec && guessKey === currentRec.key) {
+      if (currentRec.kind === "leaf") {
+        if (patternBYG === "GGGGG") {
+          followed = true;
           state.strategyNode = null;
+        } else {
+          state.strategyAlive = false;
         }
       } else {
-        state.strategyAlive = false;
+        const branches = Array.isArray(state.strategyNode.branches)
+          ? state.strategyNode.branches
+          : [];
+
+        const branch = branches.find(b => b.patternBYG === patternBYG);
+
+        if (branch) {
+          followed = true;
+
+          if (branch.outcome === "continue" && branch.child) {
+            state.strategyNode = branch.child;
+          } else {
+            state.strategyNode = null;
+          }
+        } else {
+          state.strategyAlive = false;
+        }
       }
     } else {
       state.strategyAlive = false;
@@ -497,28 +528,6 @@ function cyclePendingTile(index) {
 function confirmManualJudge() {
   if (state.mode !== "manual") return;
   assistMode.confirmJudge();
-}
-
-function getCurrentRecommendation(node) {
-  if (!node) return null;
-
-  if (node.type === "leaf") {
-    return {
-      kind: "leaf",
-      word: node.word || node.key || "",
-      key: node.key || "",
-      remaining: Number(node.remaining ?? 1),
-      depth: Number(node.depth ?? 0)
-    };
-  }
-
-  return {
-    kind: "node",
-    word: node.guessWord || node.guessKey || "",
-    key: node.guessKey || "",
-    remaining: Number(node.remaining ?? 0),
-    depth: Number(node.depth ?? 0)
-  };
 }
 
 function renderBoard() {
